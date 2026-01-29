@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { fal } from '@fal-ai/client';
 
-// Mock the fal.ai client before importing
-const mockSubscribe = vi.fn();
+// Mock the fal.ai client
 vi.mock('@fal-ai/client', () => ({
   fal: {
     config: vi.fn(),
-    subscribe: mockSubscribe,
+    subscribe: vi.fn(),
   },
 }));
 
@@ -13,6 +13,8 @@ vi.mock('@fal-ai/client', () => ({
 import { generateWithTrellis, generateWithTripoSR, TrellisOutput } from '@/lib/fal';
 
 describe('fal.ts', () => {
+  const mockSubscribe = vi.mocked(fal.subscribe);
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -27,7 +29,7 @@ describe('fal.ts', () => {
           file_size: 12345,
         },
       };
-      mockSubscribe.mockResolvedValueOnce({ data: mockOutput });
+      mockSubscribe.mockResolvedValueOnce({ data: mockOutput } as never);
 
       const imageUrl = 'https://example.com/test.jpg';
       const result = await generateWithTrellis(imageUrl);
@@ -57,7 +59,7 @@ describe('fal.ts', () => {
           url: 'https://cdn.example.com/preview.mp4',
         },
       };
-      mockSubscribe.mockResolvedValueOnce({ data: mockOutput });
+      mockSubscribe.mockResolvedValueOnce({ data: mockOutput } as never);
 
       const result = await generateWithTrellis('https://example.com/image.png');
 
@@ -78,11 +80,11 @@ describe('fal.ts', () => {
     it('should handle onQueueUpdate callback', async () => {
       mockSubscribe.mockImplementation(async (_model, options) => {
         // Simulate queue update
-        if (options.onQueueUpdate) {
+        if (options?.onQueueUpdate) {
           options.onQueueUpdate({
             status: 'IN_PROGRESS',
             logs: [{ message: 'Processing...' }],
-          });
+          } as never);
         }
         return {
           data: {
@@ -93,7 +95,7 @@ describe('fal.ts', () => {
               file_size: 1000,
             },
           },
-        };
+        } as never;
       });
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -109,7 +111,7 @@ describe('fal.ts', () => {
       const mockOutput = {
         model_mesh: { url: 'https://example.com/triposr-model.glb' },
       };
-      mockSubscribe.mockResolvedValueOnce({ data: mockOutput });
+      mockSubscribe.mockResolvedValueOnce({ data: mockOutput } as never);
 
       const result = await generateWithTripoSR('https://example.com/input.jpg');
 
@@ -129,7 +131,7 @@ describe('fal.ts', () => {
     it('should include foreground_ratio and mc_resolution', async () => {
       mockSubscribe.mockResolvedValueOnce({
         data: { model_mesh: { url: 'https://example.com/model.glb' } },
-      });
+      } as never);
 
       await generateWithTripoSR('https://example.com/test.jpg');
 

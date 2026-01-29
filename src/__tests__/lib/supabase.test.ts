@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createClient } from '@supabase/supabase-js';
 
 // Mock createClient before importing
-const mockCreateClient = vi.fn(() => ({
-  from: vi.fn(),
-  storage: { from: vi.fn() },
-}));
-
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: mockCreateClient,
+  createClient: vi.fn(() => ({
+    from: vi.fn(),
+    storage: { from: vi.fn() },
+  })),
 }));
 
 import { createBrowserClient, createServerClient, getPublicUrl, STORAGE_BUCKETS } from '@/lib/supabase';
 
 describe('supabase.ts', () => {
+  const mockCreateClient = vi.mocked(createClient);
   const originalEnv = process.env;
 
   beforeEach(() => {

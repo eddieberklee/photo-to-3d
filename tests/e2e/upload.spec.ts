@@ -98,7 +98,7 @@ test.describe('File Upload', () => {
     });
 
     // Should show error state
-    await expect(page.getByText('Generation failed')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Generation failed', { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('Generation failed - API error')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Try Again' })).toBeVisible();
   });

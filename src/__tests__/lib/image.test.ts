@@ -1,21 +1,36 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock sharp
-const mockToBuffer = vi.fn();
-const mockJpeg = vi.fn(() => ({ toBuffer: mockToBuffer }));
-const mockResize = vi.fn(() => ({ jpeg: mockJpeg }));
-const mockSharp = vi.fn(() => ({ resize: mockResize }));
+// Mock sharp - must be before import
+vi.mock('sharp', () => {
+  const mockToBuffer = vi.fn();
+  const mockJpeg = vi.fn(() => ({ toBuffer: mockToBuffer }));
+  const mockResize = vi.fn(() => ({ jpeg: mockJpeg }));
+  const mockSharp = vi.fn(() => ({ resize: mockResize }));
 
-vi.mock('sharp', () => ({
-  default: mockSharp,
-}));
+  // Attach methods for test access
+  (mockSharp as unknown as Record<string, unknown>).__mockToBuffer = mockToBuffer;
+  (mockSharp as unknown as Record<string, unknown>).__mockJpeg = mockJpeg;
+  (mockSharp as unknown as Record<string, unknown>).__mockResize = mockResize;
 
+  return { default: mockSharp };
+});
+
+import sharp from 'sharp';
 import { downscaleImage } from '@/lib/image';
 
 describe('image.ts', () => {
+  const mockSharp = vi.mocked(sharp);
+  const mockResize = (mockSharp as unknown as Record<string, unknown>).__mockResize as ReturnType<typeof vi.fn>;
+  const mockJpeg = (mockSharp as unknown as Record<string, unknown>).__mockJpeg as ReturnType<typeof vi.fn>;
+  const mockToBuffer = (mockSharp as unknown as Record<string, unknown>).__mockToBuffer as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockToBuffer.mockResolvedValue(Buffer.from('processed-image'));
+    mockJpeg.mockReturnValue({ toBuffer: mockToBuffer });
+    mockResize.mockReturnValue({ jpeg: mockJpeg });
+    mockSharp.mockReturnValue({ resize: mockResize } as unknown as ReturnType<typeof sharp>);
   });
 
   describe('downscaleImage', () => {
@@ -108,7 +123,7 @@ describe('image.ts', () => {
       await downscaleImage(arrayBuffer);
 
       // Verify Buffer.from was called correctly
-      const calls = mockSharp.mock.calls as unknown[][];const calledWith = calls[0]?.[0];
+      const calledWith = mockSharp.mock.calls[0][0];
       expect(Buffer.isBuffer(calledWith)).toBe(true);
     });
   });

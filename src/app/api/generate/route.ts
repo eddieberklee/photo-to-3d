@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { generateWithTrellis } from '@/lib/fal';
-import { downscaleImage } from '@/lib/image';
 
 // Auto-delete after 60 days
 const RETENTION_DAYS = 60;
@@ -21,16 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
-    // Downscale image to save storage
+    // Upload to Supabase Storage (skip downscaling for serverless compatibility)
     const arrayBuffer = await file.arrayBuffer();
-    const { buffer: processedImage, contentType } = await downscaleImage(arrayBuffer);
-
-    // Upload to Supabase Storage
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop() || 'jpg'}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('uploads')
-      .upload(`images/${filename}`, processedImage, {
-        contentType,
+      .upload(`images/${filename}`, Buffer.from(arrayBuffer), {
+        contentType: file.type,
         cacheControl: '3600',
       });
 
