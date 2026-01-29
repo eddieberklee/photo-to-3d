@@ -108,7 +108,7 @@ describe('image.ts', () => {
       await downscaleImage(arrayBuffer);
 
       // Verify Buffer.from was called correctly
-      const calledWith = mockSharp.mock.calls[0][0];
+      const calls = mockSharp.mock.calls as unknown[][];const calledWith = calls[0]?.[0];
       expect(Buffer.isBuffer(calledWith)).toBe(true);
     });
   });
