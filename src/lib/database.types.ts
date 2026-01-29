@@ -13,6 +13,7 @@ export interface Database {
           image_url: string;
           status: UploadStatus;
           created_at: string;
+          expires_at: string | null;
         };
         Insert: {
           id?: string;
@@ -20,6 +21,7 @@ export interface Database {
           image_url: string;
           status?: UploadStatus;
           created_at?: string;
+          expires_at?: string;
         };
         Update: {
           id?: string;
@@ -27,6 +29,7 @@ export interface Database {
           image_url?: string;
           status?: UploadStatus;
           created_at?: string;
+          expires_at?: string;
         };
       };
       models: {

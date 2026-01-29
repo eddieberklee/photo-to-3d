@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 import { getReplicateClient, TRIPOSR_MODEL } from '@/lib/replicate';
+import { downscaleImage } from '@/lib/image';
+
+// Auto-delete after 60 days
+const RETENTION_DAYS = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,12 +24,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
-    // Upload to Supabase Storage
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`;
+    // Downscale image to save storage
+    const arrayBuffer = await file.arrayBuffer();
+    const { buffer: processedImage, contentType } = await downscaleImage(arrayBuffer);
+
+    // Upload downscaled image to Supabase Storage
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('uploads')
-      .upload(`images/${filename}`, file, {
-        contentType: file.type,
+      .upload(`images/${filename}`, processedImage, {
+        contentType,
         cacheControl: '3600',
       });
 
@@ -41,12 +49,17 @@ export async function POST(request: NextRequest) {
 
     const imageUrl = urlData.publicUrl;
 
-    // Create upload record
+    // Calculate expiration date (60 days from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + RETENTION_DAYS);
+
+    // Create upload record with expiration
     const { data: upload, error: dbError } = await supabase
       .from('uploads')
       .insert({
         image_url: imageUrl,
         status: 'processing',
+        expires_at: expiresAt.toISOString(),
       })
       .select()
       .single();
@@ -56,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
     }
 
-    // Run TripoSR model
+    // Run 3D generation model
     try {
       const output = await replicate.run(TRIPOSR_MODEL, {
         input: {
@@ -135,6 +148,7 @@ export async function POST(request: NextRequest) {
         success: true,
         uploadId: upload.id,
         modelUrl: modelUrlData.publicUrl,
+        expiresAt: expiresAt.toISOString(),
       });
 
     } catch (error) {
