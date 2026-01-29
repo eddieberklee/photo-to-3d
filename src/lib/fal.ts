@@ -10,7 +10,7 @@ export interface TrellisInput {
   ss_sampling_steps?: number;
   slat_sampling_steps?: number;
   mesh_simplify?: number;
-  texture_size?: number;
+  texture_size?: "512" | "1024" | "2048";
 }
 
 export interface TrellisOutput {
@@ -32,7 +32,7 @@ export async function generateWithTrellis(imageUrl: string): Promise<TrellisOutp
   const result = await fal.subscribe("fal-ai/trellis", {
     input: {
       image_url: imageUrl,
-      texture_size: 1024,
+      texture_size: "1024",
     },
     logs: true,
     onQueueUpdate: (update) => {
