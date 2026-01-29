@@ -1,11 +1,11 @@
-import Replicate from "replicate";
+import Replicate from 'replicate';
 
 // Initialize Replicate client
 export function getReplicateClient(): Replicate {
   const apiToken = process.env.REPLICATE_API_TOKEN;
 
   if (!apiToken) {
-    throw new Error("Missing REPLICATE_API_TOKEN environment variable");
+    throw new Error('Missing REPLICATE_API_TOKEN environment variable');
   }
 
   return new Replicate({
@@ -15,7 +15,7 @@ export function getReplicateClient(): Replicate {
 
 // TripoSR model identifier on Replicate
 export const TRIPOSR_MODEL =
-  "camenduru/triposr:a4d7a5ab3ef8c8ff72c91d39600ae14e7c4d28ae6bc9a3ea36a1ec6e345fea0f";
+  'camenduru/triposr:a4d7a5ab3ef8c8ff72c91d39600ae14e7c4d28ae6bc9a3ea36a1ec6e345fea0f';
 
 // TripoSR input parameters
 export interface TripoSRInput {
@@ -43,7 +43,7 @@ export async function runTripoSR(
   });
 
   // The output is the URL to the mesh file
-  if (typeof output === "string") {
+  if (typeof output === 'string') {
     return { mesh: output };
   }
 
@@ -53,11 +53,11 @@ export async function runTripoSR(
   }
 
   // Handle object output
-  if (output && typeof output === "object" && "mesh" in output) {
+  if (output && typeof output === 'object' && 'mesh' in output) {
     return output as TripoSROutput;
   }
 
-  throw new Error("Unexpected output format from TripoSR model");
+  throw new Error('Unexpected output format from TripoSR model');
 }
 
 // Poll prediction status with exponential backoff
@@ -73,14 +73,12 @@ export async function pollPrediction(
   while (attempts < maxAttempts) {
     const prediction = await replicate.predictions.get(predictionId);
 
-    if (prediction.status === "succeeded") {
+    if (prediction.status === 'succeeded') {
       return prediction;
     }
 
-    if (prediction.status === "failed" || prediction.status === "canceled") {
-      throw new Error(
-        `Prediction ${prediction.status}: ${prediction.error || "Unknown error"}`
-      );
+    if (prediction.status === 'failed' || prediction.status === 'canceled') {
+      throw new Error(`Prediction ${prediction.status}: ${prediction.error || 'Unknown error'}`);
     }
 
     // Wait before next poll
@@ -91,7 +89,7 @@ export async function pollPrediction(
     attempts++;
   }
 
-  throw new Error("Prediction timed out");
+  throw new Error('Prediction timed out');
 }
 
 // Create prediction without waiting (for webhook-based flow)
@@ -108,7 +106,7 @@ export async function createTripoSRPrediction(
       foreground_ratio: input.foreground_ratio ?? 0.85,
     },
     webhook: webhookUrl,
-    webhook_events_filter: webhookUrl ? ["completed"] : undefined,
+    webhook_events_filter: webhookUrl ? ['completed'] : undefined,
   });
 
   return prediction;

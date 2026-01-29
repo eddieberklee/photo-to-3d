@@ -1,8 +1,8 @@
-"use server";
+'use server';
 
-import { createServerClient } from "@/lib/supabase";
-import { getReplicateClient, runTripoSR } from "@/lib/replicate";
-import { uploadImageFromBase64, downloadAndStoreModel } from "@/lib/storage";
+import { createServerClient } from '@/lib/supabase';
+import { getReplicateClient, runTripoSR } from '@/lib/replicate';
+import { uploadImageFromBase64, downloadAndStoreModel } from '@/lib/storage';
 
 // Types
 export interface Generate3DInput {
@@ -38,10 +38,7 @@ async function withRetry<T>(
       lastError = error instanceof Error ? error : new Error(String(error));
 
       // Don't retry on validation errors
-      if (
-        lastError.message.includes("Invalid") ||
-        lastError.message.includes("Missing")
-      ) {
+      if (lastError.message.includes('Invalid') || lastError.message.includes('Missing')) {
         throw lastError;
       }
 
@@ -78,21 +75,19 @@ async function withRetry<T>(
  * }
  * ```
  */
-export async function generate3DModel(
-  input: Generate3DInput
-): Promise<Generate3DResult> {
+export async function generate3DModel(input: Generate3DInput): Promise<Generate3DResult> {
   try {
     const { image, mcResolution = 256, foregroundRatio = 0.85 } = input;
 
     // Validate input
     if (!image) {
-      return { success: false, error: "Image is required" };
+      return { success: false, error: 'Image is required' };
     }
 
-    if (!image.startsWith("data:image/") && !image.startsWith("http")) {
+    if (!image.startsWith('data:image/') && !image.startsWith('http')) {
       return {
         success: false,
-        error: "Invalid image format. Provide base64 data URL or HTTP URL",
+        error: 'Invalid image format. Provide base64 data URL or HTTP URL',
       };
     }
 
@@ -104,23 +99,23 @@ export async function generate3DModel(
     let imagePath: string;
 
     // Handle image input
-    if (image.startsWith("data:image/")) {
+    if (image.startsWith('data:image/')) {
       // Upload base64 image to Supabase
-      console.log("[Server Action] Uploading image to Supabase...");
+      console.log('[Server Action] Uploading image to Supabase...');
       const uploadResult = await withRetry(() =>
-        uploadImageFromBase64(supabase, image, "input.png")
+        uploadImageFromBase64(supabase, image, 'input.png')
       );
       imageUrl = uploadResult.publicUrl;
       imagePath = uploadResult.path;
-      console.log("[Server Action] Image uploaded:", imagePath);
+      console.log('[Server Action] Image uploaded:', imagePath);
     } else {
       // Use provided URL directly
       imageUrl = image;
-      imagePath = "external";
+      imagePath = 'external';
     }
 
     // Generate 3D model with TripoSR
-    console.log("[Server Action] Running TripoSR model...");
+    console.log('[Server Action] Running TripoSR model...');
     const tripoResult = await withRetry(
       () =>
         runTripoSR(replicate, {
@@ -131,14 +126,14 @@ export async function generate3DModel(
       3,
       2000
     );
-    console.log("[Server Action] 3D model generated");
+    console.log('[Server Action] 3D model generated');
 
     // Download and store the generated model
-    console.log("[Server Action] Storing model in Supabase...");
+    console.log('[Server Action] Storing model in Supabase...');
     const modelResult = await withRetry(() =>
       downloadAndStoreModel(supabase, tripoResult.mesh, imagePath)
     );
-    console.log("[Server Action] Model stored:", modelResult.path);
+    console.log('[Server Action] Model stored:', modelResult.path);
 
     return {
       success: true,
@@ -150,10 +145,9 @@ export async function generate3DModel(
       },
     };
   } catch (error) {
-    console.error("[Server Action] 3D generation error:", error);
+    console.error('[Server Action] 3D generation error:', error);
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
     return { success: false, error: errorMessage };
   }

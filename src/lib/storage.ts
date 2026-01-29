@@ -1,13 +1,13 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { STORAGE_BUCKETS, getPublicUrl } from "./supabase";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { STORAGE_BUCKETS, getPublicUrl } from './supabase';
 
 // Generate a unique filename with timestamp
-export function generateFilename(originalName: string, prefix = ""): string {
+export function generateFilename(originalName: string, prefix = ''): string {
   const timestamp = Date.now();
   const randomSuffix = Math.random().toString(36).substring(2, 8);
-  const extension = originalName.split(".").pop() || "bin";
-  const baseName = originalName.replace(/\.[^/.]+$/, "").substring(0, 50);
-  const sanitizedName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
+  const extension = originalName.split('.').pop() || 'bin';
+  const baseName = originalName.replace(/\.[^/.]+$/, '').substring(0, 50);
+  const sanitizedName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_');
   return `${prefix}${timestamp}-${randomSuffix}-${sanitizedName}.${extension}`;
 }
 
@@ -19,13 +19,11 @@ export async function uploadImage(
 ): Promise<{ path: string; publicUrl: string }> {
   const path = `images/${generateFilename(filename)}`;
 
-  const { data, error } = await supabase.storage
-    .from(STORAGE_BUCKETS.UPLOADS)
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || "image/png",
-    });
+  const { data, error } = await supabase.storage.from(STORAGE_BUCKETS.UPLOADS).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type || 'image/png',
+  });
 
   if (error) {
     throw new Error(`Failed to upload image: ${error.message}`);
@@ -42,10 +40,10 @@ export async function uploadImageFromBase64(
   filename: string
 ): Promise<{ path: string; publicUrl: string }> {
   // Remove data URL prefix if present
-  const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
-  
+  const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, '');
+
   // Detect content type from data URL or default to PNG
-  let contentType = "image/png";
+  let contentType = 'image/png';
   const dataUrlMatch = base64Data.match(/^data:(image\/\w+);base64,/);
   if (dataUrlMatch) {
     contentType = dataUrlMatch[1];
@@ -75,21 +73,20 @@ export async function downloadAndStoreModel(
   }
 
   const blob = await response.blob();
-  
+
   // Generate filename based on original image
-  const baseName = originalImagePath
-    .split("/")
-    .pop()
-    ?.replace(/\.[^/.]+$/, "") || "model";
+  const baseName =
+    originalImagePath
+      .split('/')
+      .pop()
+      ?.replace(/\.[^/.]+$/, '') || 'model';
   const path = `models/${generateFilename(`${baseName}.glb`)}`;
 
-  const { data, error } = await supabase.storage
-    .from(STORAGE_BUCKETS.MODELS)
-    .upload(path, blob, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: "model/gltf-binary",
-    });
+  const { data, error } = await supabase.storage.from(STORAGE_BUCKETS.MODELS).upload(path, blob, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: 'model/gltf-binary',
+  });
 
   if (error) {
     throw new Error(`Failed to store model: ${error.message}`);
