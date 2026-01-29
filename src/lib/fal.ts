@@ -29,20 +29,28 @@ export interface TrellisOutput {
  * Generate 3D model from image using Trellis (Microsoft's SOTA model)
  */
 export async function generateWithTrellis(imageUrl: string): Promise<TrellisOutput> {
-  const result = await fal.subscribe("fal-ai/trellis", {
-    input: {
-      image_url: imageUrl,
-      texture_size: "1024",
-    },
-    logs: true,
-    onQueueUpdate: (update) => {
-      if (update.status === "IN_PROGRESS") {
-        console.log("Trellis progress:", update.logs?.map(l => l.message).join("\n"));
-      }
-    },
-  });
+  console.log("Calling Trellis with image:", imageUrl);
+  
+  try {
+    const result = await fal.subscribe("fal-ai/trellis", {
+      input: {
+        image_url: imageUrl,
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          console.log("Trellis progress:", update.logs?.map(l => l.message).join("\n"));
+        }
+      },
+    });
 
-  return result.data as TrellisOutput;
+    console.log("Trellis success:", JSON.stringify(result.data));
+    return result.data as TrellisOutput;
+  } catch (error: unknown) {
+    // Log full error details
+    console.error("Trellis API error:", JSON.stringify(error, null, 2));
+    throw error;
+  }
 }
 
 /**
