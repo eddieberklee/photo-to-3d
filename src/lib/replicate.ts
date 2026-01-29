@@ -60,18 +60,26 @@ export async function runTripoSR(
   throw new Error('Unexpected output format from TripoSR model');
 }
 
+// Prediction type (from Replicate API)
+export interface Prediction {
+  id: string;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  output?: unknown;
+  error?: string;
+}
+
 // Poll prediction status with exponential backoff
 export async function pollPrediction(
   replicate: Replicate,
   predictionId: string,
   maxAttempts = 60,
   initialDelayMs = 1000
-): Promise<Replicate.Prediction> {
+): Promise<Prediction> {
   let attempts = 0;
   let delayMs = initialDelayMs;
 
   while (attempts < maxAttempts) {
-    const prediction = await replicate.predictions.get(predictionId);
+    const prediction = (await replicate.predictions.get(predictionId)) as Prediction;
 
     if (prediction.status === 'succeeded') {
       return prediction;
@@ -97,8 +105,8 @@ export async function createTripoSRPrediction(
   replicate: Replicate,
   input: TripoSRInput,
   webhookUrl?: string
-): Promise<Replicate.Prediction> {
-  const prediction = await replicate.predictions.create({
+): Promise<Prediction> {
+  const prediction = (await replicate.predictions.create({
     model: TRIPOSR_MODEL,
     input: {
       image: input.image,
@@ -107,7 +115,7 @@ export async function createTripoSRPrediction(
     },
     webhook: webhookUrl,
     webhook_events_filter: webhookUrl ? ['completed'] : undefined,
-  });
+  })) as Prediction;
 
   return prediction;
 }
