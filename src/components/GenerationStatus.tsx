@@ -6,9 +6,9 @@ export type GenerationState = 'idle' | 'uploading' | 'processing' | 'generating'
 
 interface GenerationStatusProps {
   status: GenerationState;
-  progress?: number; // 0-100
-  error?: string;
-  onRetry?: () => void;
+  progress?: number | undefined; // 0-100
+  error?: string | undefined;
+  onRetry?: (() => void) | undefined;
 }
 
 const stateConfig: Record<

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo "Running type check before push..."
+npm run typecheck
+
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed. Push aborted."
+  exit 1
+fi
+
+echo "✅ Type check passed."

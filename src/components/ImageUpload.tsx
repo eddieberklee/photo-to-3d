@@ -64,8 +64,9 @@ export default function ImageUpload({ onUpload, disabled = false }: ImageUploadP
       if (disabled) return;
 
       const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        processFile(files[0]);
+      const firstFile = files[0];
+      if (files.length > 0 && firstFile) {
+        processFile(firstFile);
       }
     },
     [disabled, processFile]
@@ -74,8 +75,9 @@ export default function ImageUpload({ onUpload, disabled = false }: ImageUploadP
   const handleFileChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
-      if (files && files.length > 0) {
-        processFile(files[0]);
+      const firstFile = files?.[0];
+      if (files && files.length > 0 && firstFile) {
+        processFile(firstFile);
       }
     },
     [processFile]

@@ -113,8 +113,10 @@ export async function createTripoSRPrediction(
       mc_resolution: input.mc_resolution ?? 256,
       foreground_ratio: input.foreground_ratio ?? 0.85,
     },
-    webhook: webhookUrl,
-    webhook_events_filter: webhookUrl ? ['completed'] : undefined,
+    ...(webhookUrl && {
+      webhook: webhookUrl,
+      webhook_events_filter: ['completed'] as const,
+    }),
   })) as Prediction;
 
   return prediction;

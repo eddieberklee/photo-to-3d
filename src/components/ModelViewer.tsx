@@ -6,8 +6,8 @@ import { OrbitControls, Environment, Center, useGLTF, Html } from '@react-three/
 import * as THREE from 'three';
 
 interface ModelViewerProps {
-  modelUrl?: string;
-  onDownload?: () => void;
+  modelUrl?: string | undefined;
+  onDownload?: (() => void) | undefined;
 }
 
 // Loading spinner component for 3D scene

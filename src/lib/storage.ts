@@ -45,7 +45,7 @@ export async function uploadImageFromBase64(
   // Detect content type from data URL or default to PNG
   let contentType = 'image/png';
   const dataUrlMatch = base64Data.match(/^data:(image\/\w+);base64,/);
-  if (dataUrlMatch) {
+  if (dataUrlMatch && dataUrlMatch[1]) {
     contentType = dataUrlMatch[1];
   }
 
