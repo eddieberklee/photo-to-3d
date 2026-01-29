@@ -61,17 +61,22 @@ export async function POST(request: NextRequest) {
       const output = await replicate.run(TRIPOSR_MODEL, {
         input: {
           image: imageUrl,
-          mc_resolution: 256,
-          foreground_ratio: 0.85,
+          save_mesh: true,
+          guidance_scale: 15,
         },
       });
 
       // Get the model URL from output
+      // Shap-E returns array: [gif, ply_file] or [gif, obj_file]
       let modelUrl: string;
       if (typeof output === 'string') {
         modelUrl = output;
-      } else if (Array.isArray(output) && output[0]) {
-        modelUrl = output[0] as string;
+      } else if (Array.isArray(output)) {
+        // Find the mesh file (ply, obj, or glb)
+        const meshFile = (output as string[]).find(url => 
+          url.endsWith('.ply') || url.endsWith('.obj') || url.endsWith('.glb')
+        );
+        modelUrl = meshFile || (output[output.length - 1] as string);
       } else {
         throw new Error('Unexpected output format');
       }
@@ -79,12 +84,23 @@ export async function POST(request: NextRequest) {
       // Download and store the model in Supabase
       const modelResponse = await fetch(modelUrl);
       const modelBlob = await modelResponse.blob();
-      const modelFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}.glb`;
+      
+      // Determine file extension from URL
+      const urlExt = modelUrl.split('.').pop()?.toLowerCase() || 'glb';
+      const modelFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${urlExt}`;
+      
+      // Set content type based on format
+      const contentTypes: Record<string, string> = {
+        'glb': 'model/gltf-binary',
+        'gltf': 'model/gltf+json',
+        'obj': 'text/plain',
+        'ply': 'application/x-ply',
+      };
 
       const { data: modelUpload, error: modelError } = await supabase.storage
         .from('models')
         .upload(`models/${modelFilename}`, modelBlob, {
-          contentType: 'model/gltf-binary',
+          contentType: contentTypes[urlExt] || 'application/octet-stream',
           cacheControl: '3600',
         });
 
@@ -102,7 +118,7 @@ export async function POST(request: NextRequest) {
         .insert({
           upload_id: upload.id,
           model_url: modelUrlData.publicUrl,
-          format: 'glb',
+          format: urlExt as 'glb' | 'gltf' | 'obj',
         });
 
       if (modelDbError) {

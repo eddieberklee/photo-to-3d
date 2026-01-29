@@ -13,9 +13,9 @@ export function getReplicateClient(): Replicate {
   });
 }
 
-// TripoSR model identifier on Replicate
+// Shap-E model identifier on Replicate (TripoSR was deprecated)
 export const TRIPOSR_MODEL =
-  'camenduru/triposr:a4d7a5ab3ef8c8ff72c91d39600ae14e7c4d28ae6bc9a3ea36a1ec6e345fea0f';
+  'cjwbw/shap-e:5957069d5c509126a73c7cb68abcddbb985aeefa4d318e7c63ec1352ce6da68c';
 
 // TripoSR input parameters
 export interface TripoSRInput {
