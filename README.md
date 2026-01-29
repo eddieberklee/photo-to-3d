@@ -1,69 +1,115 @@
 # Photo to 3D
 
-Upload a photo, get a 3D model. Simple.
+Convert photos into interactive 3D models. Upload an image, wait for AI-powered generation, and view/download your 3D model.
 
-## Features
-- 📱 Mobile-friendly upload (drag-drop or camera)
-- 🤖 AI-powered 3D generation (TripoSR via Replicate)
-- 🎮 Interactive 3D viewer (pan, rotate, zoom)
-- 📥 Download as GLB (3D print ready)
+## Features (MVP)
 
-## Local Development
+- 📷 Upload a single photo (JPEG/PNG)
+- ⏳ Real-time generation progress tracking
+- 🎮 Interactive 3D viewer (rotate, zoom, pan)
+- 💾 Download models as GLB files
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **3D Rendering**: React Three Fiber + Three.js
+- **Storage**: Supabase (optional)
+- **3D Generation**: External API (Tripo3D, Meshy, etc.)
+
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- Supabase CLI (`npm install -g supabase`)
-- Replicate API token
 
-### Setup
+- Node.js 18+
+- npm or yarn
+
+### Installation
 
 ```bash
-# Clone and install
+# Clone the repository
+git clone <repo-url>
 cd photo-to-3d
+
+# Install dependencies
 npm install
 
-# Set up environment
+# Copy environment variables
 cp .env.example .env.local
-# Edit .env.local with your keys
 
-# Start Supabase locally
-supabase start
-
-# Run migrations
-supabase db push
-
-# Start dev server
-npm run dev
+# Fill in your API keys in .env.local
 ```
-
-Open [http://localhost:3000](http://localhost:3000)
 
 ### Environment Variables
 
+Create a `.env.local` file with:
+
+```bash
+# 3D Generation API (choose one)
+TRIPO3D_API_KEY=your_key_here
+# or
+MESHY_API_KEY=your_key_here
+
+# Supabase (optional, for file storage)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ```
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-key
-REPLICATE_API_TOKEN=your-replicate-token
+
+### Development
+
+```bash
+# Start the development server
+npm run dev
+
+# Open http://localhost:3000
 ```
 
-## Deploy to Vercel
+### Scripts
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/photo-to-3d)
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Fix ESLint issues |
+| `npm run format` | Format code with Prettier |
+| `npm run format:check` | Check code formatting |
 
-1. Push to GitHub
-2. Connect to Vercel
-3. Add environment variables
-4. Deploy
+## Project Structure
 
-## Tech Stack
-- Next.js 14 (App Router)
-- Supabase (Database + Storage)
-- Replicate (TripoSR model)
-- React Three Fiber (3D viewer)
-- Tailwind CSS
+```
+src/
+├── app/                  # Next.js App Router pages
+│   ├── page.tsx          # Home/upload page
+│   ├── status/[id]/      # Generation status page
+│   ├── view/[id]/        # 3D viewer page
+│   └── api/              # API routes
+├── components/           # React components
+│   ├── upload/           # Upload-related components
+│   ├── viewer/           # 3D viewer components
+│   └── ui/               # Shared UI components
+├── lib/                  # Utilities and clients
+└── types/                # TypeScript types
+```
 
-## Docs
-- [PRD](./docs/prd.md)
-- [Architecture](./docs/architecture.md)
-- [Assumptions](./docs/assumptions.md)
+## Documentation
+
+- [Assumptions](./docs/assumptions.md) - Technical and product assumptions
+- [PRD](./docs/prd.md) - Product requirements document
+- [Architecture](./docs/architecture.md) - System architecture
+
+## Roadmap
+
+- [x] Project scaffold
+- [ ] Upload component
+- [ ] 3D generation API integration
+- [ ] Status polling
+- [ ] 3D viewer with React Three Fiber
+- [ ] Download functionality
+- [ ] Mobile optimization
+
+## License
+
+MIT
