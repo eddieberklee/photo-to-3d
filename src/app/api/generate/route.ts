@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
-import { getReplicateClient, TRIPOSR_MODEL } from '@/lib/replicate';
+import { generateWithTrellis } from '@/lib/fal';
 import { downscaleImage } from '@/lib/image';
 
 // Auto-delete after 60 days
@@ -8,9 +8,7 @@ const RETENTION_DAYS = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    // Initialize clients lazily (not at module level)
     const supabase = createServerClient();
-    const replicate = getReplicateClient();
 
     const formData = await request.formData();
     const file = formData.get('image') as File;
@@ -19,7 +17,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
@@ -28,7 +25,7 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const { buffer: processedImage, contentType } = await downscaleImage(arrayBuffer);
 
-    // Upload downscaled image to Supabase Storage
+    // Upload to Supabase Storage
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('uploads')
@@ -49,11 +46,11 @@ export async function POST(request: NextRequest) {
 
     const imageUrl = urlData.publicUrl;
 
-    // Calculate expiration date (60 days from now)
+    // Calculate expiration date
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + RETENTION_DAYS);
 
-    // Create upload record with expiration
+    // Create upload record
     const { data: upload, error: dbError } = await supabase
       .from('uploads')
       .insert({
@@ -69,69 +66,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
     }
 
-    // Run 3D generation model
+    // Generate 3D model with Trellis (fal.ai)
     try {
-      const output = await replicate.run(TRIPOSR_MODEL, {
-        input: {
-          image: imageUrl,
-          save_mesh: true,
-          guidance_scale: 15,
-        },
-      });
+      console.log('Starting Trellis generation for:', imageUrl);
+      const result = await generateWithTrellis(imageUrl);
+      console.log('Trellis result:', JSON.stringify(result));
 
-      // Get the model URL from output
-      // Shap-E returns array: [gif, ply_file] or [gif, obj_file]
-      console.log('Replicate output:', JSON.stringify(output));
-      
-      let modelUrl: string;
-      if (typeof output === 'string') {
-        modelUrl = output;
-      } else if (Array.isArray(output)) {
-        // Find the mesh file (ply, obj, or glb) - ensure we only check strings
-        const meshFile = output.find(item => 
-          typeof item === 'string' && 
-          (item.endsWith('.ply') || item.endsWith('.obj') || item.endsWith('.glb'))
-        );
-        // Fallback to last item if no mesh found
-        const lastItem = output[output.length - 1];
-        modelUrl = (meshFile as string) || (typeof lastItem === 'string' ? lastItem : String(lastItem));
-      } else if (output && typeof output === 'object') {
-        // Handle object output (some models return {mesh: url} or similar)
-        const obj = output as Record<string, unknown>;
-        modelUrl = (obj.mesh || obj.model || obj.output || obj.url || Object.values(obj)[0]) as string;
-      } else {
-        throw new Error(`Unexpected output format: ${typeof output}`);
-      }
-      
-      if (!modelUrl || typeof modelUrl !== 'string') {
-        throw new Error(`Invalid model URL: ${JSON.stringify(output)}`);
-      }
+      const modelUrl = result.model_mesh.url;
 
       // Download and store the model in Supabase
       const modelResponse = await fetch(modelUrl);
       const modelBlob = await modelResponse.blob();
       
-      // Determine file extension from URL
-      const urlExt = modelUrl.split('.').pop()?.toLowerCase() || 'glb';
-      const modelFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${urlExt}`;
-      
-      // Set content type based on format
-      const contentTypes: Record<string, string> = {
-        'glb': 'model/gltf-binary',
-        'gltf': 'model/gltf+json',
-        'obj': 'text/plain',
-        'ply': 'application/x-ply',
-      };
+      // Trellis outputs GLB
+      const modelFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}.glb`;
 
       const { data: modelUpload, error: modelError } = await supabase.storage
         .from('models')
         .upload(`models/${modelFilename}`, modelBlob, {
-          contentType: contentTypes[urlExt] || 'application/octet-stream',
+          contentType: 'model/gltf-binary',
           cacheControl: '3600',
         });
 
       if (modelError) {
-        throw new Error('Failed to store model');
+        throw new Error('Failed to store model: ' + modelError.message);
       }
 
       const { data: modelUrlData } = supabase.storage
@@ -139,17 +97,13 @@ export async function POST(request: NextRequest) {
         .getPublicUrl(modelUpload.path);
 
       // Create model record
-      const { error: modelDbError } = await supabase
+      await supabase
         .from('models')
         .insert({
           upload_id: upload.id,
           model_url: modelUrlData.publicUrl,
-          format: urlExt as 'glb' | 'gltf' | 'obj',
+          format: 'glb',
         });
-
-      if (modelDbError) {
-        console.error('Model DB error:', modelDbError);
-      }
 
       // Update upload status
       await supabase
@@ -165,7 +119,6 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (error) {
-      // Update status to failed
       await supabase
         .from('uploads')
         .update({ status: 'failed' })
