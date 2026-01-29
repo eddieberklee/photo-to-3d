@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import Replicate from 'replicate';
-
-// Initialize clients
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
-
-// TripoSR model on Replicate
-const TRIPOSR_MODEL = 'camenduru/triposr:a4d7a5ab3ef8c8ff72c91d39600ae14e7c4d28ae6bc9a3ea36a1ec6e345fea0f';
+import { createServerClient } from '@/lib/supabase';
+import { getReplicateClient, TRIPOSR_MODEL } from '@/lib/replicate';
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize clients lazily (not at module level)
+    const supabase = createServerClient();
+    const replicate = getReplicateClient();
+
     const formData = await request.formData();
     const file = formData.get('image') as File;
 

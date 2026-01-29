@@ -1,8 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from './database.types';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Re-export types for convenience
+export type { Database, Upload, Model, UploadWithModels } from './database.types';
 
 // Client-side Supabase client (uses anon key)
-export function createBrowserClient() {
+export function createBrowserClient(): SupabaseClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -10,11 +12,11 @@ export function createBrowserClient() {
     throw new Error('Missing Supabase environment variables');
   }
 
-  return createClient<Database>(supabaseUrl, supabaseAnonKey);
+  return createClient(supabaseUrl, supabaseAnonKey);
 }
 
 // Server-side Supabase client (uses service role key for admin operations)
-export function createServerClient() {
+export function createServerClient(): SupabaseClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -22,7 +24,7 @@ export function createServerClient() {
     throw new Error('Missing Supabase server environment variables');
   }
 
-  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
