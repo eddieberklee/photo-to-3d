@@ -81,17 +81,30 @@ export async function POST(request: NextRequest) {
 
       // Get the model URL from output
       // Shap-E returns array: [gif, ply_file] or [gif, obj_file]
+      console.log('Replicate output:', JSON.stringify(output));
+      
       let modelUrl: string;
       if (typeof output === 'string') {
         modelUrl = output;
       } else if (Array.isArray(output)) {
-        // Find the mesh file (ply, obj, or glb)
-        const meshFile = (output as string[]).find(url => 
-          url.endsWith('.ply') || url.endsWith('.obj') || url.endsWith('.glb')
+        // Find the mesh file (ply, obj, or glb) - ensure we only check strings
+        const meshFile = output.find(item => 
+          typeof item === 'string' && 
+          (item.endsWith('.ply') || item.endsWith('.obj') || item.endsWith('.glb'))
         );
-        modelUrl = meshFile || (output[output.length - 1] as string);
+        // Fallback to last item if no mesh found
+        const lastItem = output[output.length - 1];
+        modelUrl = (meshFile as string) || (typeof lastItem === 'string' ? lastItem : String(lastItem));
+      } else if (output && typeof output === 'object') {
+        // Handle object output (some models return {mesh: url} or similar)
+        const obj = output as Record<string, unknown>;
+        modelUrl = (obj.mesh || obj.model || obj.output || obj.url || Object.values(obj)[0]) as string;
       } else {
-        throw new Error('Unexpected output format');
+        throw new Error(`Unexpected output format: ${typeof output}`);
+      }
+      
+      if (!modelUrl || typeof modelUrl !== 'string') {
+        throw new Error(`Invalid model URL: ${JSON.stringify(output)}`);
       }
 
       // Download and store the model in Supabase
